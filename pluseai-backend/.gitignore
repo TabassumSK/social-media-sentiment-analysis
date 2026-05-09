@@ -1,0 +1,15 @@
+.env
+.env.*
+
+node_modules/
+
+__pycache__/
+
+venv/
+
+models/__pycache__/
+models/bert_sentiment/
+
+*.safetensors
+
+pluseai-backend/backend.py
