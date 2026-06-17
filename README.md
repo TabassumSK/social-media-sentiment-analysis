@@ -30,6 +30,78 @@ PulseAI is an advanced AI-powered platform for real-time social media sentiment 
 - **Framer Motion**: Animation library
 - **Axios**: HTTP client
 
+## 🏛 Architecture Diagram
+
+This diagram details the AI training pipeline (using the 10,000+ Kaggle dataset) and the multi-channel data acquisition system (including web scraping and public APIs).
+
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'background': '#000000'}}}%%
+graph TD
+    subgraph "1. AI Training Pipeline (Offline Phase)"
+        Kaggle["Kaggle Twitter Dataset<br/>(10,000+ Sentiments)"]
+        PreProc["Data Cleaning &<br/>Preprocessing"]
+        BERT_Base["BERT-Base-Uncased<br/>(Pre-trained)"]
+        FineTune["Fine-tuning Process<br/>(PyTorch/Transformers)"]
+        SavedModel["Fine-tuned BERT Model<br/>(Local Storage)"]
+
+        Kaggle --> PreProc
+        PreProc --> FineTune
+        BERT_Base --> FineTune
+        FineTune --> SavedModel
+    end
+
+    subgraph "2. Client Side (React Frontend)"
+        UI["React Web Interface"]
+        subgraph "Frontend Modules"
+            Charts["Recharts & Three.js<br/>(Visualizations)"]
+            AuthUI["Auth State Management"]
+            APIC["Axios API Client"]
+        end
+        UI --> APIC
+        APIC --> Charts
+    end
+
+    subgraph "3. Backend API (FastAPI)"
+        FastAPI["FastAPI Core Router"]
+        
+        subgraph "Internal Services"
+            FetchSvc["Data Fetcher Service<br/>(Asynchronous)"]
+            AnalyzeSvc["Sentiment Analyzer<br/>(BERT Inference)"]
+            AuthSvc["JWT Auth Service"]
+            DB_ORM["SQLAlchemy / SQLite"]
+        end
+
+        FastAPI --> AuthSvc
+        FastAPI --> FetchSvc
+        FastAPI --> AnalyzeSvc
+        AnalyzeSvc --> DB_ORM
+    end
+
+    subgraph "4. Data Acquisition Layer"
+        subgraph "Web Scraping Part"
+            ScraperS["Selenium / BeautifulSoup<br/>(Custom Scrapers)"]
+            Xpoz["Xpoz Scraper Client<br/>(Social Media API)"]
+        end
+        
+        subgraph "Public API Part"
+            NAPI["NewsAPI"]
+            YTAPI["YouTube Data V3"]
+            HN["HackerNews Algolia"]
+        end
+    end
+
+    %% Connections %%
+    APIC <--> FastAPI
+    FetchSvc <--> ScraperS
+    FetchSvc <--> Xpoz
+    FetchSvc <--> NAPI
+    FetchSvc <--> YTAPI
+    FetchSvc <--> HN
+    
+    SavedModel -.->|Loaded by| AnalyzeSvc
+    AnalyzeSvc <--> FetchSvc : Processes Raw Text
+```
+
 ## 📁 Project Structure
 
 ```

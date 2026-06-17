@@ -10,32 +10,11 @@ import DashboardFeatures from './dashboard/DashboardFeatures';
 import ThreeScene from './ThreeScene';
 
 const LandingPage = ({ onStart }) => {
-  const features = [
-    {
-      icon: <Globe size={24} />,
-      title: "Omni-Channel Scraper",
-      desc: "Live extraction from Twitter, Reddit, YouTube, HackerNews, and global News outlets."
-    },
-    {
-      icon: <Cpu size={24} />,
-      title: "BERT-Powered Core",
-      desc: "Advanced Transformer models decode complex emotional context with 98% accuracy."
-    },
-    {
-      icon: <PieChart size={24} />,
-      title: "Aspect Intelligence",
-      desc: "Go beyond simple scores. Understand sentiment regarding Quality, Value, and Service."
-    },
-    {
-      icon: <BarChart size={24} />,
-      title: "Expert Reporting",
-      desc: "Export findings into professional PDF, CSV, or JSON formats for business analysis."
-    }
-  ];
+
 
   return (
     <div className="landing-container">
-      {/* Hero Section */}
+      {/* 01. Hero Section */}
       <section className="hero-modern">
         <ThreeScene />
         <div className="hero-bg-glow"></div>
@@ -77,53 +56,115 @@ const LandingPage = ({ onStart }) => {
               How it Works
             </button>
           </motion.div>
+
+          {/* Quick Nav for 3D Landing Page */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1, duration: 1 }}
+            className="hero-quick-nav"
+          >
+            {[
+              { id: 'engine', label: 'Pipeline', icon: <Cpu size={16} /> },
+              { id: 'features', label: 'Features', icon: <Zap size={16} /> },
+              { id: 'use-cases', label: 'Use Cases', icon: <Target size={16} /> }
+            ].map((nav) => (
+              <button 
+                key={nav.id} 
+                className="nav-jump-btn"
+                onClick={() => document.getElementById(nav.id).scrollIntoView({ behavior: 'smooth' })}
+              >
+                <span className="nav-jump-icon">{nav.icon}</span>
+                <span className="nav-jump-label">{nav.label}</span>
+              </button>
+            ))}
+          </motion.div>
         </div>
       </section>
 
-      {/* How it Works - Pulse Engine */}
+      {/* 02. The Intelligence Pipeline - Spatial Design */}
       <section id="engine" className="section engine-section">
         <div className="container">
           <div className="section-header-centered">
-            <h2 className="section-title">The <span className="highlight">Intelligence</span> Loop</h2>
-            <p className="section-subtitle">A seamless pipeline from raw noise to strategic clarity.</p>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="section-badge"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Cpu size={16} />
+              <span>The Architecture</span>
+            </motion.div>
+            <h2 className="section-title large">Intelligence <span className="highlight">Pipeline</span></h2>
+            <p className="section-subtitle large">Our proprietary engine transforms raw social data into actionable brand strategy.</p>
           </div>
           
-          <div className="engine-grid">
-            <div className="engine-step glass">
-              <div className="step-num">01</div>
-              <Search size={32} className="step-icon blue" />
-              <h3>Scrape & Aggregate</h3>
-              <p>Our distributed scrapers pull live data from Twitter, Reddit, YouTube, and global news API endpoints simultaneously.</p>
-            </div>
-            <div className="engine-arrow"><ArrowRight /></div>
-            <div className="engine-step glass">
-              <div className="step-num">02</div>
-              <Cpu size={32} className="step-icon purple" />
-              <h3>BERT Analysis</h3>
-              <p>The RoBERTa core processes batch text, assigning sentiment labels, confidence scores, and emotional triggers.</p>
-            </div>
-            <div className="engine-arrow"><ArrowRight /></div>
-            <div className="engine-step glass">
-              <div className="step-num">03</div>
-              <BarChart size={32} className="step-icon green" />
-              <h3>Visual Intelligence</h3>
-              <p>Raw results are transformed into interactive heatmaps, radar charts, and professional exportable reports.</p>
-            </div>
-            <div className="engine-arrow"><ArrowRight /></div>
-            <div className="engine-step glass">
-              <div className="step-num">04</div>
-              <FileText size={32} className="step-icon amber" />
-              <h3>Strategic Export</h3>
-              <p>Generate and download comprehensive reports in PDF, CSV, or JSON formats for seamless stakeholder sharing.</p>
+          <div className="pipeline-container">
+            <div className="pipeline-connector"></div>
+            <div className="engine-grid-spatial">
+              <motion.div 
+                whileHover={{ translateZ: 20, rotateX: -5, rotateY: 5 }}
+                className="engine-step-spatial glass"
+              >
+                <div className="step-glow blue"></div>
+                <div className="step-num-spatial">01</div>
+                <div className="step-icon-wrap blue">
+                  <Search size={32} />
+                </div>
+                <h3>Scrape & Aggregate</h3>
+                <p>Distributed agents pull live data from Twitter, Reddit, and global news API endpoints simultaneously.</p>
+              </motion.div>
+
+              <motion.div 
+                whileHover={{ translateZ: 20, rotateX: -5, rotateY: 5 }}
+                className="engine-step-spatial glass"
+              >
+                <div className="step-glow purple"></div>
+                <div className="step-num-spatial">02</div>
+                <div className="step-icon-wrap purple">
+                  <Cpu size={32} />
+                </div>
+                <h3>BERT Analysis</h3>
+                <p>State-of-the-art RoBERTa models process batch text to decode sentiment and emotional triggers.</p>
+              </motion.div>
+
+              <motion.div 
+                whileHover={{ translateZ: 20, rotateX: -5, rotateY: 5 }}
+                className="engine-step-spatial glass"
+              >
+                <div className="step-glow green"></div>
+                <div className="step-num-spatial">03</div>
+                <div className="step-icon-wrap green">
+                  <BarChart size={32} />
+                </div>
+                <h3>Visual Intel</h3>
+                <p>Interactive heatmaps and radar charts provide a multi-dimensional view of public opinion.</p>
+              </motion.div>
+
+              <motion.div 
+                whileHover={{ translateZ: 20, rotateX: -5, rotateY: 5 }}
+                className="engine-step-spatial glass"
+              >
+                <div className="step-glow amber"></div>
+                <div className="step-num-spatial">04</div>
+                <div className="step-icon-wrap amber">
+                  <FileText size={32} />
+                </div>
+                <h3>Strategic Export</h3>
+                <p>Generate board-ready reports in PDF, CSV, or JSON for seamless stakeholder sharing.</p>
+              </motion.div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Core Intelligence Features Section */}
+      {/* 03. Core Intelligence Features & Apps */}
       <DashboardFeatures />
 
-      {/* Final CTA */}
+
+
+      {/* 05. Final CTA */}
       <section className="cta-section">
         <div className="cta-card glass">
           <h2>Ready to listen to the world?</h2>
@@ -136,5 +177,6 @@ const LandingPage = ({ onStart }) => {
     </div>
   );
 };
+
 
 export default LandingPage;

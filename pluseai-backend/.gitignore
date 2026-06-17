@@ -12,4 +12,3 @@ models/bert_sentiment/
 
 *.safetensors
 
-pluseai-backend/backend.py

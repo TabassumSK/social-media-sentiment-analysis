@@ -23,8 +23,20 @@ def init_db():
             pos_pct REAL,
             neg_pct REAL,
             total INTEGER,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            category TEXT DEFAULT 'analysis'
         )'''))
+        try:
+            # Check if column exists first to avoid InFailedSqlTransaction in PostgreSQL
+            check_col = conn.execute(text("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='searches' AND column_name='category'
+            """)).fetchone()
+            if not check_col:
+                conn.execute(text("ALTER TABLE searches ADD COLUMN category TEXT DEFAULT 'analysis'"))
+        except Exception:
+            pass
         conn.execute(text('''CREATE TABLE IF NOT EXISTS sentiment_trends (
             id SERIAL PRIMARY KEY,
             query TEXT NOT NULL,
@@ -45,8 +57,20 @@ def init_db():
             id SERIAL PRIMARY KEY,
             name TEXT NOT NULL,
             email TEXT NOT NULL,
+            phone_no TEXT DEFAULT '',
             subject TEXT,
             message TEXT NOT NULL,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )'''))
+        try:
+            # Check if column exists first to avoid errors
+            check_phone = conn.execute(text("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='contacts' AND column_name='phone_no'
+            """)).fetchone()
+            if not check_phone:
+                conn.execute(text("ALTER TABLE contacts ADD COLUMN phone_no TEXT DEFAULT ''"))
+        except Exception as e:
+            print(f"Migration Error on contacts (phone_no): {e}")
         conn.commit()

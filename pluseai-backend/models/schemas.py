@@ -21,7 +21,8 @@ class SingleRequest(BaseModel):
 class ContactRequest(BaseModel):
     name: str
     email: str
-    subject: Optional[str] = ""
+    phone_no: str
+    subject: str
     message: str
 
 class ResetPasswordRequest(BaseModel):

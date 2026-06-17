@@ -16,7 +16,7 @@ def clean_text(text: str) -> str:
     text = re.sub(r'[^a-zA-Z\s]', ' ', text)
     return re.sub(r'\s+', ' ', text).strip().lower()
 
-def predict_batch(texts: list) -> list:
+def predict_batch(texts: list, allow_neutral: bool = True) -> list:
     cleaned = [clean_text(t) for t in texts]
     if not cleaned: return []
     
@@ -33,7 +33,7 @@ def predict_batch(texts: list) -> list:
         confidence = round(max(p), 4)
         pred = preds[i]
         
-        if confidence < 0.60:
+        if allow_neutral and confidence < 0.60:
             label, score = "Neutral", 0
         elif pred == 1:
             label, score = "Positive", 1
@@ -43,10 +43,21 @@ def predict_batch(texts: list) -> list:
         # Basic Emotion Detection (Rule-based for speed)
         emotions = []
         text_lower = cleaned[i]
-        if any(w in text_lower for w in ['love', 'great', 'excellent', 'happy', 'best']): emotions.append("Joy")
-        if any(w in text_lower for w in ['hate', 'bad', 'worst', 'angry', 'terrible']): emotions.append("Anger")
-        if any(w in text_lower for w in ['wow', 'amazing', 'unexpected', 'surprise']): emotions.append("Surprise")
-        if not emotions: emotions.append("Neutral")
+        
+        if label == "Negative":
+            if any(w in text_lower for w in ['hate', 'bad', 'worst', 'angry', 'terrible', 'annoy', 'disappoint', 'suck', 'fail', 'garbage', 'trash', 'horrible', 'useless', 'waste']):
+                emotions.append("Anger")
+            else:
+                emotions.append("Sadness")
+        else:
+            if any(w in text_lower for w in ['love', 'great', 'excellent', 'happy', 'best', 'good', 'nice', 'awesome', 'enjoy', 'wonderful']):
+                emotions.append("Joy")
+            elif any(w in text_lower for w in ['hate', 'bad', 'worst', 'angry', 'terrible']):
+                emotions.append("Anger")
+            elif any(w in text_lower for w in ['wow', 'amazing', 'unexpected', 'surprise']):
+                emotions.append("Surprise")
+            else:
+                emotions.append("Neutral")
         
         results.append({
             "label": label,
