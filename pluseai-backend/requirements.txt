@@ -18,6 +18,7 @@ python-dotenv==1.0.0
 # Upgrade to versions that support newer Python
 transformers>=4.45.0
 tokenizers>=0.20.0
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch>=2.6.0,<3.0
 requests>=2.32.0
 
