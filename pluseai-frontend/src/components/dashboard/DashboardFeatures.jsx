@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Zap, Shield, Globe, Cpu, BarChart, 
+import {
+  Zap, Shield, Globe, Cpu, BarChart,
   Target, Rocket, TrendingUp, Layers
 } from 'lucide-react';
 
@@ -66,11 +66,11 @@ const DashboardFeatures = () => {
             </div>
             <h2 className="section-title large">Technical <span className="highlight">Excellence</span></h2>
           </div>
-          
-          <div style={{ maxWidth: '750px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+          <div style={{ maxWidth: '750px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             {features.map((f, i) => (
-              <motion.div 
-                key={i} 
+              <motion.div
+                key={i}
                 whileHover={{ y: -5, scale: 1.01 }}
                 className="feature-card-spatial glass"
                 style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1.5rem 2.5rem' }}
@@ -99,8 +99,8 @@ const DashboardFeatures = () => {
 
           <div className="apps-grid-v2">
             {applications.map((app, i) => (
-              <motion.div 
-                key={i} 
+              <motion.div
+                key={i}
                 whileHover={{ scale: 1.05 }}
                 className="app-card-v2 glass"
               >

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, FileText, Table, Code, FileJson } from 'lucide-react';
+import { Download, FileText, Table, FileJson } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -56,6 +56,7 @@ const ReportCenter = ({ data, onLoading }) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url); // Fix: release memory
   };
 
   const downloadJSON = () => {
@@ -65,6 +66,7 @@ const ReportCenter = ({ data, onLoading }) => {
     link.href = url;
     link.download = `PulseAI_Analysis_Raw_${data.query.replace(/\s+/g, '_')}.json`;
     link.click();
+    URL.revokeObjectURL(url); // Fix: release memory
   };
 
   return (

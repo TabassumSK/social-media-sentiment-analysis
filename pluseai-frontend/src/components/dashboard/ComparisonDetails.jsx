@@ -21,7 +21,8 @@ const ComparisonDetails = ({ verdict, product1, product2 }) => {
               </tr>
             </thead>
             <tbody>
-              {['Quality', 'Value', 'Performance', 'Service', 'Innovation'].map((aspect, idx) => {
+              {/* Fix: use dynamic aspect keys from API data instead of hardcoded names */}
+              {Object.keys({ ...(product1.aspects || {}), ...(product2.aspects || {}) }).map((aspect, idx) => {
                 const p1Val = product1.aspects && product1.aspects[aspect] ? product1.aspects[aspect].pos_pct : 0;
                 const p2Val = product2.aspects && product2.aspects[aspect] ? product2.aspects[aspect].pos_pct : 0;
                 

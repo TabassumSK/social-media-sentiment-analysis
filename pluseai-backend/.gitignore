@@ -3,12 +3,22 @@
 
 node_modules/
 
+# Python cache
 __pycache__/
+*.pyc
+*.pyo
 
+# Virtual environments
 venv/
+.venv/
 
+# ML model files
 models/__pycache__/
 models/bert_sentiment/
-
 *.safetensors
 
+# Database files
+*.db
+
+# Debug/scratch files
+scratch/

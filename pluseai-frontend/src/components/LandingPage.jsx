@@ -1,9 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Zap, Shield, Globe, Cpu, BarChart, Users, 
-  Target, Rocket, TrendingUp, Layers, CheckCircle, 
-  ArrowRight, Search, Activity, PieChart, FileText
+  Zap, Cpu, BarChart, 
+  Target, ArrowRight, Search, FileText
 } from 'lucide-react';
 import './LandingPage.css';
 import DashboardFeatures from './dashboard/DashboardFeatures';
@@ -168,7 +167,7 @@ const LandingPage = ({ onStart }) => {
       <section className="cta-section">
         <div className="cta-card glass">
           <h2>Ready to listen to the world?</h2>
-          <p>Join 1,000+ analysts using PulseAI to stay ahead of the curve.</p>
+          <p>Leverage real-time social sentiment analysis to stay ahead of the curve.</p>
           <button className="btn-get-started-v2 large" onClick={onStart}>
             Get Started Free <ArrowRight size={20} />
           </button>

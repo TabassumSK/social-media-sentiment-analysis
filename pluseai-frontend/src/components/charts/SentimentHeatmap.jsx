@@ -24,6 +24,7 @@ const SentimentHeatmap = ({ data, height = '25px' }) => {
   });
 
   // Bin each post based on label
+  const extraPlatforms = [];
   posts.forEach(p => {
     const rawPlat = p.platform || p.type || 'unknown';
     // Match casing
@@ -36,7 +37,8 @@ const SentimentHeatmap = ({ data, height = '25px' }) => {
         'negative': 0,
         'total': 0
       };
-      platforms.push(platKey);
+      // Fix: don't mutate platforms during iteration — collect extras separately
+      if (!extraPlatforms.includes(platKey)) extraPlatforms.push(platKey);
     }
 
     heatmapData[platKey].total += 1;
@@ -50,6 +52,8 @@ const SentimentHeatmap = ({ data, height = '25px' }) => {
       heatmapData[platKey]['neutral'] += 1;
     }
   });
+  // Now safely add any new platforms found
+  extraPlatforms.forEach(p => { if (!platforms.includes(p)) platforms.push(p); });
 
   // Mathematical distribution fallback for any platform with missing/empty post slices to guarantee no empty cells
   platforms.forEach(plat => {

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, PieChart as PieIcon, BarChart3 as BarIcon, 
-  LayoutGrid as GridIcon, Activity, Thermometer, ShieldAlert, Sparkles, AlertCircle, Info, Landmark, HelpCircle, CheckCircle2, TrendingUp
+  LayoutGrid as GridIcon, Activity, Thermometer, ShieldAlert, Sparkles, AlertCircle, HelpCircle, TrendingUp
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, XAxis, YAxis, Tooltip,
@@ -12,7 +12,6 @@ import {
 } from "recharts";
 
 import SentimentHeatmap from "./charts/SentimentHeatmap";
-import ConfidenceTrend from "./charts/ConfidenceTrend";
 
 const SummaryPage = ({ data }) => {
   const { type } = useParams();
@@ -391,25 +390,7 @@ const SummaryPage = ({ data }) => {
       }
 
       case 'intensity': {
-        const posts = data.posts || [];
-        const totalPosts = posts.length || 1;
-        
-        let pos = 0, neu = 0, neg = 0;
-        
-        posts.forEach(p => {
-          const label = p.label;
-          if (label === 'Positive') {
-            pos++;
-          } else if (label === 'Negative') {
-            neg++;
-          } else {
-            neu++;
-          }
-        });
 
-        const posPct = Math.round((pos / totalPosts) * 100);
-        const neuPct = Math.round((neu / totalPosts) * 100);
-        const negPct = Math.round((neg / totalPosts) * 100);
 
         return (
           <div className="premium-summary-layout">
@@ -749,7 +730,7 @@ const SummaryPage = ({ data }) => {
         {renderSummary()}
       </div>
 
-      <style jsx>{`
+      <style>{`
         .heatmap-wrapper-grid {
           display: grid;
           grid-template-columns: 1.2fr 1fr;

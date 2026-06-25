@@ -7,7 +7,8 @@ const ConfidenceTrend = ({ posts }) => {
   const data = posts.map((p, i) => ({
     index: i,
     confidence: Math.round(p.confidence * 100),
-    sentiment: p.score === 1 ? 100 : p.score === -1 ? 0 : 50
+    // Fix: use p.label (guaranteed to exist) instead of p.score (may be undefined)
+    sentiment: p.label === 'Positive' ? 100 : p.label === 'Negative' ? 0 : 50
   }));
 
   return (

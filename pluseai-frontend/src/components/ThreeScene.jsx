@@ -1,9 +1,8 @@
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { 
-  Float, MeshDistortMaterial, Sphere, 
-  OrbitControls, GradientTexture, Stars,
-  Text, PresentationControls
+  Float, MeshDistortMaterial, 
+  OrbitControls, GradientTexture, Stars
 } from '@react-three/drei';
 import * as THREE from 'three';
 

@@ -25,8 +25,11 @@ class ContactRequest(BaseModel):
     subject: str
     message: str
 
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
 class ResetPasswordRequest(BaseModel):
-    username: str
+    token: str
     new_password: str
 
 class ChatRequest(BaseModel):

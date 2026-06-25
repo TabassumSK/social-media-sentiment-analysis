@@ -4,16 +4,18 @@ from fastapi.security import OAuth2PasswordRequestForm
 import aiohttp
 import asyncio
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import Counter
 import json
 import os
+import secrets
 
 from core.database import init_db, engine
 from core.auth import create_token, get_current_user, hash_password, verify_password, get_optional_user
+from core.email_service import send_welcome_email, send_password_reset_email, send_contact_notification
 from models.schemas import (
-    RegisterRequest, AnalyzeRequest, CompareRequest, 
-    SingleRequest, ContactRequest, ResetPasswordRequest, ChatRequest
+    RegisterRequest, AnalyzeRequest, CompareRequest,
+    SingleRequest, ContactRequest, ForgotPasswordRequest, ResetPasswordRequest, ChatRequest
 )
 from services.fetchers import (
     fetch_newsapi, fetch_hackernews, fetch_youtube, 
@@ -27,7 +29,8 @@ from services.visualizer import (
 )
 from fastapi.responses import StreamingResponse
 from sqlalchemy import text
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import io
 
 app = FastAPI(title="PulseAI v2", version="2.1.0")
@@ -47,8 +50,16 @@ async def register(req: RegisterRequest):
             conn.execute(text("INSERT INTO users (username, email, hashed_password) VALUES (:u, :e, :p)"),
                         {"u": req.username, "e": req.email, "p": hash_password(req.password)})
             conn.commit()
+        # Send welcome email asynchronously (non-blocking)
+        import threading
+        threading.Thread(
+            target=send_welcome_email,
+            args=(req.email, req.username),
+            daemon=True
+        ).start()
         return {"message": "User created"}
-    except: raise HTTPException(400, "User already exists")
+    except Exception:
+        raise HTTPException(400, "User already exists")
 
 @app.post("/login")
 async def login(form: OAuth2PasswordRequestForm = Depends()):
@@ -125,6 +136,9 @@ async def analyze(req: AnalyzeRequest, username: Optional[str] = Depends(get_opt
 
     # Cache the analyzed data for visualization endpoints
     ANALYSIS_CACHE[req.query] = analyzed
+    # Evict oldest entry if cache exceeds size limit to prevent memory leak
+    if len(ANALYSIS_CACHE) > 50:
+        ANALYSIS_CACHE.pop(next(iter(ANALYSIS_CACHE)))
 
     # PERSISTENCE
     try:
@@ -186,8 +200,7 @@ async def chat(req: ChatRequest, username: Optional[str] = Depends(get_optional_
     if not api_key: raise HTTPException(500, "Gemini API Key not configured")
     
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        client = genai.Client(api_key=api_key)
         
         prompt = f"""
         You are PulseAI Assistant, an extremely interactive, friendly, and concise brand strategist and support bot for PulseAI.
@@ -210,12 +223,13 @@ async def chat(req: ChatRequest, username: Optional[str] = Depends(get_optional_
         User: {req.message}
         """
         
-        response = model.generate_content(
-            prompt,
-            generation_config={
-                "max_output_tokens": 250,
-                "temperature": 0.7
-            }
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                max_output_tokens=250,
+                temperature=0.7
+            )
         )
         return {"response": response.text}
     except Exception as e: 
@@ -228,6 +242,31 @@ async def me(username: str = Depends(get_current_user)):
     if not row:
         raise HTTPException(status_code=404, detail="User not found")
     return {"username": row[0], "email": row[1]}
+
+@app.get("/trending")
+async def trending():
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            WITH RankedSearches AS (
+                SELECT query, pos_pct, neg_pct, total, created_at,
+                       ROW_NUMBER() OVER(PARTITION BY query ORDER BY id DESC) as rn,
+                       id
+                FROM searches
+                WHERE category = 'analysis'
+            )
+            SELECT query, pos_pct, neg_pct, total, created_at
+            FROM RankedSearches
+            WHERE rn = 1
+            ORDER BY id DESC
+            LIMIT 5
+        """)).fetchall()
+    return [{
+        "query": r[0],
+        "pos_pct": r[1],
+        "neg_pct": r[2],
+        "total": r[3],
+        "created_at": r[4].isoformat() if hasattr(r[4], 'isoformat') else str(r[4])
+    } for r in rows]
 
 @app.get("/history")
 async def history(username: str = Depends(get_current_user)):
@@ -301,15 +340,82 @@ async def contact(req: ContactRequest):
         conn.execute(text("INSERT INTO contacts (name, email, phone_no, subject, message) VALUES (:n, :e, :p, :s, :m)"),
                     {"n": req.name, "e": req.email, "p": req.phone_no, "s": req.subject, "m": req.message})
         conn.commit()
+    # Notify site owner via email (non-blocking)
+    import threading
+    threading.Thread(
+        target=send_contact_notification,
+        args=(req.name, req.email, req.phone_no, req.subject, req.message),
+        daemon=True
+    ).start()
     return {"message": "Message sent"}
+
+@app.post("/forgot-password")
+async def forgot_password(req: ForgotPasswordRequest):
+    """Generate a password reset token and email it to the user."""
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT username FROM users WHERE email=:e"), {"e": req.email}
+        ).fetchone()
+    # Always return 200 to avoid user enumeration
+    if not row:
+        return {"message": "If that email is registered, a reset link has been sent."}
+
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.utcnow() + timedelta(hours=1)
+    username = row[0]
+
+    with engine.connect() as conn:
+        # Invalidate any previous unused tokens for this email
+        conn.execute(
+            text("UPDATE password_reset_tokens SET used=TRUE WHERE email=:e AND used=FALSE"),
+            {"e": req.email}
+        )
+        conn.execute(
+            text("INSERT INTO password_reset_tokens (email, token, expires_at) VALUES (:e, :t, :x)"),
+            {"e": req.email, "t": token, "x": expires_at}
+        )
+        conn.commit()
+
+    # Send reset email (non-blocking)
+    import threading
+    threading.Thread(
+        target=send_password_reset_email,
+        args=(req.email, token, username),
+        daemon=True
+    ).start()
+
+    return {"message": "If that email is registered, a reset link has been sent."}
+
 
 @app.post("/reset-password")
 async def reset_password(req: ResetPasswordRequest):
+    """Verify reset token and update password."""
     with engine.connect() as conn:
-        conn.execute(text("UPDATE users SET hashed_password=:p WHERE username=:u"),
-                    {"p": hash_password(req.new_password), "u": req.username})
+        row = conn.execute(
+            text("SELECT email, expires_at, used FROM password_reset_tokens WHERE token=:t"),
+            {"t": req.token}
+        ).fetchone()
+
+    if not row:
+        raise HTTPException(400, "Invalid or expired reset token.")
+
+    email, expires_at, used = row
+    if used:
+        raise HTTPException(400, "This reset link has already been used.")
+    if datetime.utcnow() > expires_at:
+        raise HTTPException(400, "Reset link has expired. Please request a new one.")
+
+    with engine.connect() as conn:
+        conn.execute(
+            text("UPDATE users SET hashed_password=:p WHERE email=:e"),
+            {"p": hash_password(req.new_password), "e": email}
+        )
+        conn.execute(
+            text("UPDATE password_reset_tokens SET used=TRUE WHERE token=:t"),
+            {"t": req.token}
+        )
         conn.commit()
-    return {"message": "Password updated"}
+    return {"message": "Password updated successfully."}
 
 @app.get("/visualize/wordcloud")
 async def get_wordcloud(query: str, username: Optional[str] = Depends(get_optional_user)):

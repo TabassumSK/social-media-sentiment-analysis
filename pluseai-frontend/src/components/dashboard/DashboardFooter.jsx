@@ -1,6 +1,5 @@
 import React from 'react';
 import { 
-  Github, Twitter, Linkedin, 
   Activity, ShieldCheck, Database
 } from 'lucide-react';
 

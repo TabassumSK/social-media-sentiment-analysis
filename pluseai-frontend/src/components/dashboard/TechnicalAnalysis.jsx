@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FileBarChart, Wind, Grid, Activity, Info, PieChart, BarChart as BarChartIcon, Download, Database, ShieldCheck } from 'lucide-react';
+import { Wind, Grid, Activity, Info, PieChart, BarChart as BarChartIcon, Download, Database, ShieldCheck } from 'lucide-react';
 import jsPDF from 'jspdf';
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -35,11 +35,13 @@ const TechnicalAnalysis = ({ data, token, preFetched, refetch }) => {
         fetchReports();
       }
     }
-  }, [query, preFetched]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, preFetched, token]);
 
   const fetchReports = async () => {
     setLoading(true);
-    const headers = { Authorization: `Bearer ${token}` };
+    // Fix: only send Authorization header when token exists
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     
     try {
       const fetchImage = async (endpoint) => {
@@ -58,12 +60,13 @@ const TechnicalAnalysis = ({ data, token, preFetched, refetch }) => {
         fetchImage(`/visualize/stacked-bar?query=${encodeURIComponent(query)}`)
       ]);
 
-      setWcUrl(wc);
-      setHmUrl(hm);
-      setCmUrl(cm);
-      setTrUrl(tr);
-      setPieUrl(pie);
-      setStackedUrl(stacked);
+      // Fix: revoke old blob URLs before setting new ones to prevent memory leaks
+      setWcUrl(prev => { if (prev) URL.revokeObjectURL(prev); return wc; });
+      setHmUrl(prev => { if (prev) URL.revokeObjectURL(prev); return hm; });
+      setCmUrl(prev => { if (prev) URL.revokeObjectURL(prev); return cm; });
+      setTrUrl(prev => { if (prev) URL.revokeObjectURL(prev); return tr; });
+      setPieUrl(prev => { if (prev) URL.revokeObjectURL(prev); return pie; });
+      setStackedUrl(prev => { if (prev) URL.revokeObjectURL(prev); return stacked; });
 
     } catch (err) {
       console.error("Failed to fetch technical reports", err);
@@ -452,7 +455,7 @@ const TechnicalAnalysis = ({ data, token, preFetched, refetch }) => {
         </div>
       )}
       
-      <style jsx>{`
+      <style>{`
         .technical-analysis-container { padding: 40px 0; color: #e4e4e7; }
         .technical-header { margin-bottom: 40px; text-align: center; }
         .header-badge { display: inline-block; padding: 4px 12px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-radius: 20px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }

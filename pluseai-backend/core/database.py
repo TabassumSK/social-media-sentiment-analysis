@@ -73,4 +73,12 @@ def init_db():
                 conn.execute(text("ALTER TABLE contacts ADD COLUMN phone_no TEXT DEFAULT ''"))
         except Exception as e:
             print(f"Migration Error on contacts (phone_no): {e}")
+        conn.execute(text('''CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id SERIAL PRIMARY KEY,
+            email TEXT NOT NULL,
+            token TEXT UNIQUE NOT NULL,
+            expires_at TIMESTAMP NOT NULL,
+            used BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )'''))
         conn.commit()
