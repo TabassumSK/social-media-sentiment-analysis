@@ -31,7 +31,7 @@ google-genai>=2.9.0
 aiohttp>=3.9.0
 sqlalchemy
 psycopg2-binary
-google-api-python-client
+google-api-python-client>=2.110.0
 xpoz
 matplotlib
 seaborn
