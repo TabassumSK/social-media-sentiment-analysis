@@ -45,6 +45,10 @@ async def startup():
 
 @app.post("/register")
 async def register(req: RegisterRequest):
+    if not req.username or not req.email or not req.password:
+        raise HTTPException(400, "Username, email, and password are required")
+    if "@" not in req.email or "." not in req.email:
+        raise HTTPException(400, "Invalid email format")
     try:
         with engine.connect() as conn:
             conn.execute(text("INSERT INTO users (username, email, hashed_password) VALUES (:u, :e, :p)"),

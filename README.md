@@ -14,19 +14,19 @@
    - Collects data from Twitter/X, Reddit, YouTube, Hacker News, and NewsAPI.
    - Aggregates content from multiple sources for comprehensive analysis.
   
-6. **Comparative Analysis**
+3. **Comparative Analysis**
    - Compare sentiment between multiple products or topics.
    - View platform-wise sentiment distribution.
 
-3. **Interactive Dashboard**
+4. **Interactive Dashboard**
    - Visualize sentiment using charts and graphs.
    - Display keyword insights and sentiment trends.
 
-4. **Report Generation**
+5. **Report Generation**
    - Generate and download sentiment analysis reports in PDF format.
    - Maintain analysis history for future reference.
 
-5. **Authentication & Security**
+6. **Authentication & Security**
    - Secure user registration and login.
    - JWT-based authentication with protected routes.
 
@@ -66,7 +66,7 @@
 - Node.js 18+
 - PostgreSQL
 
-### Steps to Run Locally
+## 5. Steps to Run Locally
 
 1. **Backend Setup**
 
@@ -89,7 +89,7 @@
 
 ---
 
-## 5. Configure Environment Variables:
+## 6. Configure Environment Variables:
 
 Create a `.env` file inside the backend directory.
 
