@@ -35,12 +35,14 @@
 ## 2. Screenshots
 
 ![Home](./images/Home.png) 
-![Dashboard](./images/Dashboard.png) 
-![Analysis](./images/Analysis.png) 
-![Comparison](./images/Comparison.png) 
-![Report](./images/Report.png) 
-![Login](./images/Login.png) 
-![Register](./images/Register.png)
+![Dashboard](./images/dashboard.png) 
+![Analysis](./images/analysis.png) 
+![Technical](./images/technical.png) 
+![Comparison](./images/comparison.png) 
+![Report](./images/report.png) 
+![Login](./images/login.png) 
+![Register](./images/register.png)
+![history](./images/history.png) 
 
 ---
 
