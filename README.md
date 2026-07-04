@@ -109,3 +109,28 @@ NEWS_API_KEY=your_newsapi_key
 YOUTUBE_API_KEY=your_youtube_api_key
 XPOZ_API_KEY=your_xpoz_api_key
 ```
+
+## 7. Analyze Xquik exports
+
+Use the backend `/xquik/analyze` endpoint when you already have tweet rows from
+Xquik and want PulseAI to score them with the same sentiment, keyword, aspect,
+and visualization pipeline used by `/analyze`.
+
+```bash
+curl -X POST http://localhost:8000/xquik/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "brand launch",
+    "posts": [
+      {
+        "tweet_id": "123",
+        "tweetText": "Customers loved the launch",
+        "created_at": "2026-07-01T12:00:00Z",
+        "like_count": 42
+      }
+    ]
+  }'
+```
+
+The import accepts up to 500 posts, skips rows without usable text, and returns
+`skipped_count` plus `row_limit` so dashboards can show clear import feedback.
