@@ -11,6 +11,10 @@ class AnalyzeRequest(BaseModel):
     limit: Optional[int] = 500
     platform: Optional[str] = "all"
 
+class XquikAnalyzeRequest(BaseModel):
+    query: str = "Xquik import"
+    posts: List[dict]
+
 class CompareRequest(BaseModel):
     query1: str
     query2: str

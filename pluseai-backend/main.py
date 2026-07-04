@@ -15,7 +15,8 @@ from core.auth import create_token, get_current_user, hash_password, verify_pass
 from core.email_service import send_welcome_email, send_password_reset_email, send_contact_notification
 from models.schemas import (
     RegisterRequest, AnalyzeRequest, CompareRequest,
-    SingleRequest, ContactRequest, ForgotPasswordRequest, ResetPasswordRequest, ChatRequest
+    SingleRequest, ContactRequest, ForgotPasswordRequest, ResetPasswordRequest, ChatRequest,
+    XquikAnalyzeRequest
 )
 from services.fetchers import (
     fetch_newsapi, fetch_hackernews, fetch_youtube, 
@@ -38,6 +39,88 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 # Simple in-memory cache to avoid re-fetching data for technical reports
 ANALYSIS_CACHE = {}
+XQUIK_POST_LIMIT = 500
+XQUIK_TEXT_FIELDS = ("text", "tweetText", "reply_text", "replyText", "content", "full_text", "caption")
+
+def first_present(row, keys):
+    for key in keys:
+        value = row.get(key)
+        if value is not None and str(value).strip():
+            return value
+    return ""
+
+def normalize_xquik_posts(rows):
+    posts = []
+    skipped = 0
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            skipped += 1
+            continue
+        text_value = first_present(row, XQUIK_TEXT_FIELDS)
+        if not text_value:
+            skipped += 1
+            continue
+        post_id = first_present(row, ("id", "tweet_id", "tweetId", "post_id")) or f"xquik-{index}"
+        created_at = first_present(row, ("created_at", "createdAt", "timestamp", "posted_at"))
+        url = first_present(row, ("url", "tweet_url", "tweetUrl"))
+        posts.append({
+            "id": str(post_id),
+            "title": str(text_value)[:80],
+            "text": str(text_value),
+            "source": "Xquik",
+            "url": str(url),
+            "time": str(created_at),
+            "type": "xquik",
+        })
+    return posts, skipped
+
+def build_analysis_response(query, all_posts):
+    texts = [p["text"] for p in all_posts]
+    sentiments = predict_batch(texts)
+    analyzed = [{**all_posts[i], **sentiments[i], "platform": all_posts[i].get("type", "unknown")} for i in range(len(all_posts))]
+
+    pos = [p for p in analyzed if p["label"] == "Positive"]
+    neg = [p for p in analyzed if p["label"] == "Negative"]
+    total = len(analyzed)
+
+    aspects = {
+        "Quality": ["quality", "build", "design"],
+        "Value": ["price", "cost", "value"],
+        "Performance": ["fast", "speed", "performance"],
+        "Service": ["support", "service", "customer"],
+        "Innovation": ["new", "innovative", "tech", "modern", "future"]
+    }
+    aspect_results = get_aspect_sentiment(texts, aspects)
+    emotion_counts = Counter([p["emotion"] for p in analyzed])
+
+    platform_counts = {}
+    for p in analyzed:
+        plat = p["platform"]
+        if plat not in platform_counts: platform_counts[plat] = {"positive": 0, "negative": 0, "neutral": 0, "total": 0}
+        platform_counts[plat]["total"] += 1
+        if p["label"] == "Positive": platform_counts[plat]["positive"] += 1
+        elif p["label"] == "Negative": platform_counts[plat]["negative"] += 1
+        else: platform_counts[plat]["neutral"] += 1
+
+    return {
+        "query": query,
+        "total": total,
+        "summary": {
+            "positive": len(pos),
+            "negative": len(neg),
+            "neutral": total - len(pos) - len(neg),
+            "pos_pct": round(len(pos)/total*100, 1),
+            "neg_pct": round(len(neg)/total*100, 1),
+            "neutral_pct": round((total - len(pos) - len(neg))/total*100, 1),
+            "avg_confidence": round(sum([p["confidence"] for p in analyzed])/total, 4),
+            "emotions": emotion_counts
+        },
+        "platform_stats": platform_counts,
+        "aspects": aspect_results,
+        "pos_keywords": extract_keywords([p["text"] for p in pos]),
+        "neg_keywords": extract_keywords([p["text"] for p in neg]),
+        "posts": analyzed
+    }
 
 @app.on_event("startup")
 async def startup():
@@ -91,55 +174,10 @@ async def analyze(req: AnalyzeRequest, username: Optional[str] = Depends(get_opt
     all_posts = [p for sublist in results for p in sublist]
     if not all_posts: raise HTTPException(404, "No data found")
     
-    texts = [p["text"] for p in all_posts]
-    sentiments = predict_batch(texts)
-    analyzed = [{**all_posts[i], **sentiments[i], "platform": all_posts[i].get("type", "unknown")} for i in range(len(all_posts))]
-    
-    pos = [p for p in analyzed if p["label"] == "Positive"]
-    neg = [p for p in analyzed if p["label"] == "Negative"]
-    total = len(analyzed)
-    
-    aspects = {
-        "Quality": ["quality", "build", "design"],
-        "Value": ["price", "cost", "value"],
-        "Performance": ["fast", "speed", "performance"],
-        "Service": ["support", "service", "customer"],
-        "Innovation": ["new", "innovative", "tech", "modern", "future"]
-    }
-    aspect_results = get_aspect_sentiment(texts, aspects)
-    emotion_counts = Counter([p["emotion"] for p in analyzed])
-
-    platform_counts = {}
-    for p in analyzed:
-        plat = p["platform"]
-        if plat not in platform_counts: platform_counts[plat] = {"positive": 0, "negative": 0, "neutral": 0, "total": 0}
-        platform_counts[plat]["total"] += 1
-        if p["label"] == "Positive": platform_counts[plat]["positive"] += 1
-        elif p["label"] == "Negative": platform_counts[plat]["negative"] += 1
-        else: platform_counts[plat]["neutral"] += 1
-
-    res = {
-        "query": req.query,
-        "total": total,
-        "summary": {
-            "positive": len(pos),
-            "negative": len(neg),
-            "neutral": total - len(pos) - len(neg),
-            "pos_pct": round(len(pos)/total*100, 1),
-            "neg_pct": round(len(neg)/total*100, 1),
-            "neutral_pct": round((total - len(pos) - len(neg))/total*100, 1),
-            "avg_confidence": round(sum([p["confidence"] for p in analyzed])/total, 4),
-            "emotions": emotion_counts
-        },
-        "platform_stats": platform_counts,
-        "aspects": aspect_results,
-        "pos_keywords": extract_keywords([p["text"] for p in pos]),
-        "neg_keywords": extract_keywords([p["text"] for p in neg]),
-        "posts": analyzed
-    }
+    res = build_analysis_response(req.query, all_posts)
 
     # Cache the analyzed data for visualization endpoints
-    ANALYSIS_CACHE[req.query] = analyzed
+    ANALYSIS_CACHE[req.query] = res["posts"]
     # Evict oldest entry if cache exceeds size limit to prevent memory leak
     if len(ANALYSIS_CACHE) > 50:
         ANALYSIS_CACHE.pop(next(iter(ANALYSIS_CACHE)))
@@ -157,6 +195,41 @@ async def analyze(req: AnalyzeRequest, username: Optional[str] = Depends(get_opt
             """), {"q": req.query, "pk": json.dumps(res["pos_keywords"]), "nk": json.dumps(res["neg_keywords"])})
             conn.commit()
     except Exception as e: print(f"DB Log Error: {e}")
+
+    return res
+
+@app.post("/xquik/analyze")
+async def analyze_xquik(req: XquikAnalyzeRequest, username: Optional[str] = Depends(get_optional_user)):
+    if len(req.posts) > XQUIK_POST_LIMIT:
+        raise HTTPException(
+            status_code=413,
+            detail={
+                "error": f"Xquik imports accept up to {XQUIK_POST_LIMIT} posts",
+                "received_count": len(req.posts),
+                "row_limit": XQUIK_POST_LIMIT,
+            },
+        )
+    all_posts, skipped = normalize_xquik_posts(req.posts)
+    if not all_posts:
+        raise HTTPException(400, "No Xquik posts with usable text were found")
+
+    res = build_analysis_response(req.query, all_posts)
+    res["source"] = "xquik"
+    res["skipped_count"] = skipped
+    res["row_limit"] = XQUIK_POST_LIMIT
+    ANALYSIS_CACHE[req.query] = res["posts"]
+
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("INSERT INTO searches (username, query, pos_pct, neg_pct, total, category) VALUES (:u, :q, :p, :n, :t, 'xquik')"),
+                        {"u": username, "q": req.query, "p": res["summary"]["pos_pct"], "n": res["summary"]["neg_pct"], "t": res["total"]})
+            conn.execute(text("""
+                INSERT INTO keywords_cache (query, pos_keywords, neg_keywords) VALUES (:q, :pk, :nk)
+                ON CONFLICT (query) DO UPDATE SET pos_keywords=EXCLUDED.pos_keywords, neg_keywords=EXCLUDED.neg_keywords, updated_at=CURRENT_TIMESTAMP
+            """), {"q": req.query, "pk": json.dumps(res["pos_keywords"]), "nk": json.dumps(res["neg_keywords"])})
+            conn.commit()
+    except Exception:
+        pass
 
     return res
 
